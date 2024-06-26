@@ -1,53 +1,50 @@
-const databaseSchema = require('../db/models')
+const databaseSchema = require('../db/models');
+const asyncWrapper = require('../middleware/asyncWrapper');
 
 
 
-const getAllTask = async(req, res, next) =>{
-  try{
 
-    const tasks = await databaseSchema.find({});
-    res.status(200).json({tasks})
 
-  }catch(err){
-    res.status(500).json({msg:err})
+const getAllTask = asyncWrapper( async(req, res) =>{
+  const task = await databaseSchema.find({})
+  res.status(200).json({task});
+});
 
+
+const createTask = asyncWrapper(async(req, res) => {
+  const task = await databaseSchema.create(req.body);
+  res.status(201).json({task:task});
+
+});
+
+const getSingleTask  = asyncWrapper(async(req, res) => {
+  const {id:taskId} = req.params;
+  const singleTask = await databaseSchema.findOne({_id:taskId});
+  if(!singleTask){
+    return res.status(500).json({msg:`sorry no user exists with this id ${taskId}`});
   }
+  res.status(200).json({task:singleTask});
+})
 
-
-
-}
-
-const createTask = async(req, res, next) =>{
-  try{
-    const task = await databaseSchema.create(req.body)
-    res.status(201).json({task:task})
-
-  }catch(err){
-    res.status(500).json({msg:err});
-
-  }
+const updateTask = asyncWrapper( async(req, res, next) =>{
   
-}
-const getSingleTask = async(req, res, next) =>{
-  try{
+
     const {id:taskId} = req.params;
-    const singleTask = await databaseSchema.findOne({_id:taskId});
-    if(!singleTask){
-      return res.status(500).json({msg:`sorry no user exists with this id ${taskId}`});
-    }
-    res.status(200).json({task:singleTask});
+    const singleTask = await databaseSchema.findOneAndUpdate({_id:taskId}, req.body, {
+    new:true, runValidators: true
 
-
-  }catch(err){
-    res.status(500).json({msg:err});
-
+  });
+  if(!singleTask){
+    return res.status(404).json({msg:`could not find task with id ${taskId}`});
   }
-}
-const updateTask = (req, res, next) =>{
-  res.send("<h1>This is a single task</h1>");
-}
-const deleteTask = async(req, res, next) =>{
-  try{
+  res.status(200).json({singleTask: singleTask})
+
+  
+
+  
+})
+const deleteTask = asyncWrapper( async(req, res, next) =>{
+  
     const {id:taskId} = req.params;
     const task = await databaseSchema.findOneAndDelete({_id:taskId});
     if(task){
@@ -56,15 +53,14 @@ const deleteTask = async(req, res, next) =>{
     }
     return res.status(404).json({msg:`the task with Id ${{taskId}} does not exist`});
 
-  }catch(err){
-    res.status(500).json({msg:err});
-
-  }
   
-}
+  
+})
 module.exports = {
-  getAllTask,createTask,
-  getSingleTask,updateTask,
+  getAllTask,
+  createTask,
+  getSingleTask,
+  updateTask,
   deleteTask,
 
 }
